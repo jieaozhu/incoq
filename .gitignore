@@ -4,3 +4,5 @@ dist
 
 # Generated transformation statistics.
 stats/*
+
+incoq_env/
