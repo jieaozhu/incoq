@@ -184,7 +184,7 @@ class ProjectWrapperTest():
         self.languages = new_list
 
 
-@app.route('/')
+# @app.route('/')
 def index():
     query = {}
     query['groupBy'] = request.args.get('groupBy','')
@@ -198,8 +198,9 @@ def index():
     else:
         pw = ProjectWrapper(projects)
         return render_template('index.html', projects=pw.languages)
+app.route('/')(index)
 
-@app.route('/index', methods=['POST', 'GET'])
+# @app.route('/index', methods=['POST', 'GET'])
 def index2():
     query = {}
     query['groupBy'] = request.args.get('groupBy','')
@@ -213,11 +214,11 @@ def index2():
     else:
         pw = ProjectWrapper(projects)
         return render_template('index.html', projects=pw.languages)
+app.route('/index', methods=['POST', 'GET'])(index2)
 
 
 
-
-@app.route('/test')
+# @app.route('/test')
 def test():
     response = make_response('web')
     response.set_cookie('test_cookie_key','test_cookie_value')
@@ -225,16 +226,19 @@ def test():
     pw = ProjectWrapperTest(projects)
 
     return render_template('index.html', projects=pw.languages)
+app.route('/test')(test)
 
-@app.route('/user/<name>')
+# @app.route('/user/<name>')
 def user(name = 'world'):
     return render_template('user.html', name=name)
+app.route('/user/<name>')(user)
 
-@app.route('/advanced')
+# @app.route('/advanced')
 def advanced():
     return render_template('advanced.html')
+app.route('/advanced')(advanced)
 
-@app.route('/submit',methods=['POST', 'GET'])
+# @app.route('/submit',methods=['POST', 'GET'])
 def submit():
     title = request.args.get('title','')
     if title != '':
@@ -263,8 +267,9 @@ def submit():
         db.session.add(project)
         db.session.commit()
     return render_template('submit.html')
+app.route('/submit',methods=['POST', 'GET'])(submit)
 
-@app.route('/API/search', methods=['POST', 'GET'])
+# @app.route('/API/search', methods=['POST', 'GET'])
 def searchapi():
     query = {}
     query['title'] = request.args.get('title','')
@@ -305,9 +310,10 @@ def searchapi():
     # )
 
     return json.dumps([e.serialize() for e in projects])
+app.route('/API/search', methods=['POST', 'GET'])(searchapi)
 
 
-@app.route('/search', methods=['POST', 'GET'])
+# @app.route('/search', methods=['POST', 'GET'])
 def search():
     query = {}
     query['title'] = request.args.get('title','')
@@ -359,25 +365,29 @@ def search():
         return render_template('search.html', projects={lang: pw.languages[lang]})
     else:
         return render_template('search.html', projects=pw.languages)
+app.route('/search', methods=['POST', 'GET'])(search)
 
-@app.route('/API/comments/<pid>')
+# @app.route('/API/comments/<pid>')
 def getComments(pid):
     project = int(pid)
     comments = Comment.query.filter_by(pid=project).all()
     return json.dumps([e.serialize() for e in comments])
+app.route('/API/comments/<pid>')(getComments)
 
-@app.route('/API/allProjects')
+# @app.route('/API/allProjects')
 def allProjects():
     projects = Project.query.order_by(desc(Project.score)).all()
     return json.dumps([e.serialize() for e in projects])
+app.route('/API/allProjects')(allProjects)
 
-@app.route('/API/project/<pid>')
+# @app.route('/API/project/<pid>')
 def getProjects(pid):
     pid = int(pid)
     project = Project.query.filter_by(id=pid).first()
     return json.dumps(project.serialize())
+app.route('/API/project/<pid>')(getProjects)
 
-@app.route('/submitComment/<pid>', methods=['POST', 'GET'])
+# @app.route('/submitComment/<pid>', methods=['POST', 'GET'])
 def putComments(pid):
     project = int(pid)
     email = request.form.get('email','err')
@@ -390,18 +400,29 @@ def putComments(pid):
     db.session.add(comment)
     db.session.commit()
     return render_template('goBack.html')
+app.route('/submitComment/<pid>', methods=['POST', 'GET'])(putComments)
 
-@app.route('/sqlSearch', methods=['POST', 'GET'])
+# @app.route('/sqlSearch', methods=['POST', 'GET'])
 def sqlSearch():
     sql = request.form.get('sql','')
     res = []
     if sql != '':
-        results = db.engine.execute(sql)
-        if results is not None:
-            for row in results:
-                res.append(list(row))
+        if sql != '' and 'drop' not in sql and 'delete' not in sql and 'update' not in sql:
+            try:
+                results = db.engine.execute(sql)
+            except:
+                results = None
+                res.append('illegal sql query')
+            if results is not None:
+                for row in results:
+                    res.append(list(row))
+        else:
+            res.append('do not update/delete/drop table')
     res = json.dumps(res)
+    if sql == '':
+        sql = "select `title` from `projects`"
     return render_template('sql.html', sql=sql, json=res)
+app.route('/sqlSearch', methods=['POST', 'GET'])(sqlSearch)
 
 def run_before_first_request():
     pass
