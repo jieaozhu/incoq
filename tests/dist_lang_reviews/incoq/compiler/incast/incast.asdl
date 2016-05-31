@@ -1,0 +1,161 @@
+module IncAST
+{
+    mod = Module(stmt* body)
+    
+    stmt = Comment(string text)
+           -- Python strips comments during lexing.
+           -- We keep it in the AST.
+         
+           -- Function definition omits fancy Python features like
+           -- decorators, annotations, and special kinds of arguments.
+         | Fun(identifier name, identifier* args, stmt* body)
+         | Class(identifier name, expr* bases, stmt* body)
+         
+         | Import(alias* names)
+         | ImportFrom(identifier? module, alias* names, int? level)
+         
+         | Raise(expr? exc, expr? cause)
+         | Try(stmt* body, excepthandler* handlers,
+               stmt* orelse, stmt* finalbody)
+         | Assert(expr test)
+         | Global(identifier* names)
+         
+         | Return(expr? value)
+         
+           -- Loops have no else clause.
+           -- A For loop's target is just a variable.
+         | For(identifier target, expr iter, stmt* body)
+         | DecompFor(identifier* vars, expr iter, stmt* body)
+         | While(expr test, stmt* body)
+         | If(expr test, stmt* body, stmt* orelse)
+         
+         | Pass | Break | Continue
+         
+         | Expr(expr value)
+         
+           -- Updates.
+         
+           -- Assignment to multiple targets (a = b = c) isn't allowed.
+           -- Decomposing assignment (a, b = c) is a separate node.
+           -- The components must be identifiers.
+         | Assign(identifier target, expr value)
+         | DecompAssign(identifier* vars, expr value)
+         
+         | ResetDemand(identifier* names)
+         
+         | SetUpdate(expr target, setupop op, expr value)
+         | SetBulkUpdate(expr target, setbulkop op, expr value)
+         | SetClear(expr target)
+         | RelUpdate(identifier rel, setupop op, identifier elem)
+         | RelClear(identifier rel)
+         
+         | DictAssign(expr target, expr key, expr value)
+         | DictDelete(expr target, expr key)
+         | DictBulkUpdate(expr target, dictbulkop op, expr value)
+         | DictClear(expr target)
+         | MapAssign(identifier map, identifier key, identifier value)
+         | MapDelete(identifier map, identifier key)
+         | MapClear(identifier map)
+         
+         | AttrAssign(expr obj, identifier attr, expr value)
+         | AttrDelete(expr obj, identifier attr)
+    
+    expr = UnaryOp(unaryop op, expr operand)
+         | BoolOp(boolop op, expr* values)
+         | BinOp(expr left, operator op, expr right)
+           -- Compare is simplified to a binary operation.
+         | Compare(expr left, cmpop op, expr right)
+         | IfExp(expr test, expr body, expr orelse)
+         
+           -- Fancy argument passing isn't supported.
+           -- Call is a restricted form of GeneralCall.
+         | GeneralCall(expr func, expr* args)
+         | Call(identifier func, expr* args)
+         
+         | Num(object n)
+         | Str(string s)
+         | NameConstant(singleton value)
+         
+         | Name(identifier id)
+         | List(expr* elts)
+         | Set(expr* elts)
+         | Dict(expr* keys, expr* values)
+         | Tuple(expr* elts)
+         | Attribute(expr value, identifier attr)
+         | Subscript(expr value, expr index)
+         | DictLookup(expr value, expr key, expr? default)
+         
+         | ListComp(expr elt, comprehension* generators)
+         
+           -- Utility expressions.
+         | FirstThen(expr first, expr then)
+         | ImgLookup(expr set, mask mask, identifier* bounds)
+         | SetFromMap(expr map, mask mask)
+         | Unwrap(expr value)
+         | Wrap(expr value)
+         
+           -- Type checks.
+         | IsSet(expr value)
+         | HasField(expr value, identifier attr)
+         | IsMap(expr value)
+         | HasArity(expr value, object arity)
+         
+           -- Queries.
+         
+           -- Named query expression.
+         | Query(identifier name, expr query, object ann)
+         
+           -- Comprehension clauses are flattened compared to Python's
+           -- format, where conditions are nested underneath memberships.
+         | Comp(expr resexp, clause* clauses)
+         
+         | Aggr(aggrop op, expr value)
+         | AggrRestr(aggrop op, expr value, identifier* params, expr restr)
+    
+    clause = Member(expr target, expr iter)
+           | RelMember(identifier* vars, identifier rel)
+           | SingMember(identifier* vars, expr value)
+           | WithoutMember(clause cl, expr value)
+           | VarsMember(identifier* vars, expr iter)
+           | SetFromMapMember(identifier* vars, identifier rel,
+                              identifier map, mask mask)
+           
+           | MMember(identifier set, identifier elem)
+           | FMember(identifier obj, identifier value, identifier attr)
+           | MAPMember(identifier map, identifier key, identifier value)
+           | TUPMember(identifier tup, identifier* elts)
+           
+           | Cond(expr cond)
+    
+    -- For ListComp nodes.
+    comprehension = (expr target, expr iter, expr* ifs)
+    
+    excepthandler = ExceptHandler(expr? type, identifier? name, stmt* body)
+    
+    mask = (string m)
+    
+    alias = (identifier name, identifier? asname)
+    
+    boolop = And | Or
+    
+    operator = Add | Sub | Mult | Div | Mod | Pow | LShift 
+             | RShift | BitOr | BitXor | BitAnd | FloorDiv
+               -- New operations.
+             | GetCount
+    
+    unaryop = Invert | Not | UAdd | USub
+    
+    cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
+    
+    -- New operations.
+    
+    setupop = SetAdd | SetRemove
+            | IncCount | DecCount
+    
+    setbulkop = Union | Inter | Diff | SymDiff | Copy
+    
+    dictbulkop = DictCopy
+    
+    aggrop = Count | Sum
+           | Min | Max
+}

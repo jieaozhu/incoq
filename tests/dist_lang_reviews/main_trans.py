@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+from incoq.runtime import *
 import json
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, request
@@ -10,13 +9,10 @@ import random
 import sys
 import inspect
 from sqlalchemy import desc
-from incoq.runtime import *
 from orm import *
-
-
 def group(projects):
-    # Cost: O(((? * projects) + (items * projects)))
-    #       O(((? * projects) + (items * projects)))
+    # Cost: O(((? * projects) + (lans * projects) + (problems * projects)))
+    #       O(((? * projects) + (lans * projects) + (problems * projects)))
     ProjectsGroupByLanguage = Map()
     ProjectsGroupByProblem = Map()
     for p in projects:
@@ -38,20 +34,18 @@ def group(projects):
                 else:
                     ProjectsGroupByProblem[problem] = Set()
                     ProjectsGroupByProblem[problem].add(p)
-    return sortByTitle(ProjectsGroupByLanguage), sortByTitle(ProjectsGroupByProblem)
+    return (sortByTitle(ProjectsGroupByLanguage), sortByTitle(ProjectsGroupByProblem))
 
-p_by_language, p_by_problem = group(db_all_projects)
-
-
-
-
-# @app.route('/')
+(p_by_language, p_by_problem) = group(db_all_projects)
 def index():
+    # Cost: O(?)
+    #       O(?)
     query = {}
-    query['groupBy'] = request.args.get('groupBy','')
+    query['groupBy'] = request.args.get('groupBy', '')
     response = make_response('web')
-    if query['groupBy'] == 'problem':
+    if (query['groupBy'] == 'problem'):
         return render('index_groupby_problem.html', p_by_problem)
     else:
         return render('index.html', p_by_language)
+
 app.route('/')(index)
